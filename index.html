@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code d'Honneur du Gamer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&family=Raleway:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        :root { --gold: #c9a84c; --gold-light: #f0d080; --dark: #0a0a0f; --text: #d0cfc8; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { background: var(--dark); color: var(--text); font-family: 'Raleway', sans-serif; font-weight: 300; line-height: 1.7; overflow-x: hidden; }
+
+        header { text-align: center; padding: 80px 20px 40px; }
+        .hero-sword { font-size: 3rem; display: block; margin-bottom: 16px; animation: floatSword 3s ease-in-out infinite; filter: drop-shadow(0 0 18px var(--gold)); }
+        @keyframes floatSword { 0%, 100% { transform: translateY(0) rotate(-5deg); } 50% { transform: translateY(-12px) rotate(5deg); } }
+        .hero-title { font-family: 'Cinzel Decorative', serif; font-size: clamp(1.8rem, 5vw, 3.8rem); font-weight: 900; color: var(--gold-light); text-shadow: 0 0 30px rgba(201,168,76,.5); letter-spacing: .05em; line-height: 1.2; margin-bottom: 10px; }
+        .hero-subtitle { font-family: 'Cinzel', serif; font-size: clamp(.8rem, 1.8vw, 1.1rem); color: var(--gold); letter-spacing: .3em; text-transform: uppercase; opacity: .8; margin-bottom: 30px; }
+        .hero-divider { width: 260px; height: 2px; margin: 0 auto 20px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+
+        nav { position: sticky; top: 0; z-index: 100; background: rgba(10,10,15,.92); border-bottom: 1px solid rgba(201,168,76,.15); backdrop-filter: blur(14px); padding: 0 20px; display: flex; justify-content: center; flex-wrap: wrap; }
+        nav a { display: inline-flex; align-items: center; gap: 6px; padding: 14px 16px; font-family: 'Cinzel', serif; font-size: .7rem; letter-spacing: .12em; color: var(--text); text-decoration: none; border-bottom: 2px solid transparent; transition: all .25s; }
+        nav a:hover { color: var(--gold-light); border-bottom-color: var(--gold); }
+
+        main { max-width: 900px; margin: 0 auto; padding: 60px 24px 40px; }
+        .law { margin-bottom: 64px; opacity: 0; transform: translateY(30px); transition: opacity .7s ease, transform .7s ease; }
+        .law.visible { opacity: 1; transform: translateY(0); }
+        .law-inner { background: linear-gradient(135deg, rgba(24,24,40,.85) 0%, rgba(16,16,28,.9) 100%); border: 1px solid rgba(201,168,76,.12); border-radius: 4px; padding: 42px 48px; position: relative; transition: border-color .3s; }
+        .law-inner:hover { border-color: rgba(201,168,76,.35); }
+        .law-corner { position: absolute; top: 14px; right: 18px; font-family: 'Cinzel Decorative', serif; font-size: 4rem; font-weight: 900; color: rgba(201,168,76,.05); line-height: 1; pointer-events: none; }
+        .law-header { display: flex; align-items: center; gap: 18px; margin-bottom: 20px; }
+        .law-icon { font-size: 1.9rem; filter: drop-shadow(0 0 10px rgba(201,168,76,.4)); flex-shrink: 0; }
+        .law-num { font-family: 'Cinzel', serif; font-size: .7rem; letter-spacing: .25em; color: var(--gold); opacity: .6; text-transform: uppercase; display: block; margin-bottom: 4px; }
+        .law-title { font-family: 'Cinzel', serif; font-size: clamp(1.1rem, 2.5vw, 1.5rem); font-weight: 600; color: var(--gold-light); line-height: 1.2; }
+        .law-tagline { font-style: italic; color: var(--gold); opacity: .75; font-size: .95rem; margin-bottom: 20px; border-left: 2px solid rgba(201,168,76,.3); padding-left: 14px; }
+        .law-body { font-size: .97rem; color: rgba(208,207,200,.85); margin-bottom: 18px; }
+        .law-games { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+        .game-tag { font-family: 'Cinzel', serif; font-size: .68rem; letter-spacing: .08em; padding: 4px 12px; border: 1px solid rgba(201,168,76,.25); border-radius: 2px; color: var(--gold); background: rgba(201,168,76,.06); transition: all .2s; }
+        .game-tag:hover { background: rgba(201,168,76,.14); border-color: var(--gold); }
+        .law-rules { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+        .law-rules li { display: flex; align-items: flex-start; gap: 12px; font-size: .95rem; color: rgba(208,207,200,.9); }
+        .law-rules li::before { content: '◆'; color: var(--gold); font-size: .5rem; margin-top: 7px; flex-shrink: 0; opacity: .8; }
+        .section-divider { text-align: center; color: rgba(201,168,76,.25); font-size: .8rem; letter-spacing: .4em; margin: -32px 0 48px; }
+
+        .stats-section { max-width: 900px; margin: 0 auto; padding: 40px 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 24px; }
+        .stat-card { background: rgba(18,18,30,.8); border: 1px solid rgba(201,168,76,.12); padding: 32px 24px; text-align: center; transition: border-color .3s; }
+        .stat-card:hover { border-color: rgba(201,168,76,.35); }
+        .stat-number { font-family: 'Cinzel Decorative', serif; font-size: 2.5rem; color: var(--gold-light); text-shadow: 0 0 20px rgba(201,168,76,.4); line-height: 1; margin-bottom: 8px; }
+        .stat-label { font-family: 'Cinzel', serif; font-size: .7rem; letter-spacing: .2em; color: rgba(201,168,76,.7); text-transform: uppercase; }
+
+        .serment { position: relative; background: linear-gradient(135deg, #0e0e20, #12121e); border-top: 1px solid rgba(201,168,76,.2); border-bottom: 1px solid rgba(201,168,76,.2); padding: 80px 24px; text-align: center; overflow: hidden; }
+        .serment::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 70% 80% at 50% 50%, rgba(201,168,76,.05) 0%, transparent 70%); pointer-events: none; }
+        .serment-title { font-family: 'Cinzel Decorative', serif; font-size: clamp(1.4rem, 3vw, 2.2rem); color: var(--gold-light); text-shadow: 0 0 30px rgba(201,168,76,.4); margin-bottom: 40px; letter-spacing: .1em; }
+        .serment-lines { max-width: 520px; margin: 0 auto 48px; display: flex; flex-direction: column; gap: 14px; }
+        .serment-line { font-family: 'Cinzel', serif; font-size: clamp(.9rem, 2vw, 1.1rem); color: rgba(240,208,128,.88); letter-spacing: .05em; opacity: 0; transform: translateX(-20px); transition: opacity .6s ease, transform .6s ease; display: flex; align-items: center; justify-content: center; gap: 12px; }
+        .serment-line.visible { opacity: 1; transform: translateX(0); }
+        .serment-line::before { content: '⚔'; font-size: .75rem; opacity: .6; }
+        .pledge-btn { display: inline-block; font-family: 'Cinzel', serif; font-size: .85rem; letter-spacing: .2em; text-transform: uppercase; color: var(--dark); background: linear-gradient(135deg, var(--gold), var(--gold-light)); border: none; padding: 16px 48px; cursor: pointer; transition: transform .2s, box-shadow .2s; }
+        .pledge-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(201,168,76,.4); }
+        .pledge-btn.pledged { background: linear-gradient(135deg, #2a5a2a, #3a8a3a); color: #a0f0a0; cursor: default; }
+        .pledge-btn:disabled { opacity: .7; cursor: not-allowed; }
+        #pledgeMsg { margin-top: 20px; font-family: 'Cinzel', serif; font-size: .85rem; letter-spacing: .15em; color: transparent; transition: color .5s; min-height: 1.6em; }
+        #pledgeMsg.show { color: rgba(160,240,160,1); }
+        #pledgeMsg.error { color: rgba(240,160,100,1); }
+
+        .live-counter { margin-top: 32px; display: inline-flex; align-items: center; gap: 14px; background: rgba(201,168,76,.05); border: 1px solid rgba(201,168,76,.2); padding: 16px 32px; border-radius: 2px; }
+        .live-dot { width: 9px; height: 9px; border-radius: 50%; background: #4caf50; box-shadow: 0 0 10px #4caf50; animation: blink 2s ease-in-out infinite; flex-shrink: 0; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+        .live-number { font-family: 'Cinzel Decorative', serif; font-size: 2rem; color: var(--gold-light); text-shadow: 0 0 15px rgba(201,168,76,.5); line-height: 1; }
+        .live-label { font-family: 'Cinzel', serif; font-size: .68rem; letter-spacing: .18em; color: rgba(201,168,76,.65); text-transform: uppercase; margin-top: 3px; }
+
+        .map-section { max-width: 900px; margin: 0 auto; padding: 20px 24px 80px; }
+        .map-title { font-family: 'Cinzel Decorative', serif; font-size: clamp(1.1rem, 2.5vw, 1.6rem); color: var(--gold-light); text-align: center; margin-bottom: 6px; }
+        .map-subtitle { font-family: 'Cinzel', serif; font-size: .72rem; letter-spacing: .2em; color: rgba(201,168,76,.5); text-align: center; text-transform: uppercase; margin-bottom: 22px; }
+        .map-wrapper { position: relative; border: 1px solid rgba(201,168,76,.18); border-radius: 4px; overflow: hidden; }
+        #map { height: 400px; }
+        #mapLoader { position: absolute; inset: 0; background: rgba(10,10,15,.88); display: flex; align-items: center; justify-content: center; z-index: 999; font-family: 'Cinzel', serif; font-size: .78rem; letter-spacing: .15em; color: rgba(201,168,76,.6); flex-direction: column; gap: 14px; transition: opacity .4s; }
+        #mapLoader.hidden { opacity: 0; pointer-events: none; }
+        .map-spinner { width: 34px; height: 34px; border: 2px solid rgba(201,168,76,.15); border-top-color: var(--gold); border-radius: 50%; animation: spin .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .leaflet-container { background: #0d0d18 !important; }
+        .leaflet-tile { filter: brightness(.5) saturate(.35) hue-rotate(195deg); }
+        .leaflet-popup-content-wrapper { background: rgba(12,12,26,.97); border: 1px solid rgba(201,168,76,.3); color: var(--text); font-family: 'Cinzel', serif; font-size: .74rem; border-radius: 3px; box-shadow: 0 4px 28px rgba(0,0,0,.7); }
+        .leaflet-popup-tip { background: rgba(12,12,26,.97); }
+        .leaflet-popup-content { margin: 10px 14px; }
+        .leaflet-control-zoom a { background: rgba(14,14,28,.9) !important; color: var(--gold) !important; border-color: rgba(201,168,76,.2) !important; }
+
+        footer { text-align: center; padding: 48px 24px; border-top: 1px solid rgba(201,168,76,.1); font-family: 'Cinzel', serif; font-size: .75rem; letter-spacing: .2em; color: rgba(201,168,76,.5); text-transform: uppercase; }
+        .scroll-top { position: fixed; bottom: 30px; right: 30px; z-index: 50; width: 44px; height: 44px; background: rgba(10,10,15,.9); border: 1px solid rgba(201,168,76,.3); color: var(--gold); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transform: translateY(20px); transition: all .3s; }
+        .scroll-top.visible { opacity: 1; transform: translateY(0); }
+        .progress-bar { position: fixed; top: 0; left: 0; height: 2px; background: linear-gradient(90deg, var(--gold), var(--gold-light)); z-index: 200; width: 0; box-shadow: 0 0 8px var(--gold); }
+        @media(max-width:600px) { .law-inner { padding: 28px 22px; } nav a { padding: 12px 8px; font-size: .6rem; } .live-counter { flex-direction: column; gap: 8px; } }
+    </style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<header>
+    <span class="hero-sword">⚔</span>
+    <p class="hero-subtitle">Codex · Virtus · Honor</p>
+    <h1 class="hero-title">Code d'Honneur<br>du Gamer</h1>
+    <div class="hero-divider"></div>
+    <p style="font-family:'Cinzel',serif;font-size:.85rem;color:rgba(201,168,76,.6);letter-spacing:.15em;">Sept Lois · Un Serment · Une Communauté</p>
+</header>
+
+<nav>
+    <a href="#loi-1">I. Loyauté</a>
+    <a href="#loi-2">II. Respect</a>
+    <a href="#loi-3">III. Équipe</a>
+    <a href="#loi-4">IV. Maîtrise</a>
+    <a href="#loi-5">V. Discipline</a>
+    <a href="#loi-6">VI. Communauté</a>
+    <a href="#loi-7">VII. Équilibre</a>
+    <a href="#serment">⚔ Serment</a>
+</nav>
+
+<div class="stats-section">
+    <div class="stat-card"><div class="stat-number" data-count="7">0</div><div class="stat-label">Lois Sacrées</div></div>
+    <div class="stat-card"><div class="stat-number" data-count="12">0</div><div class="stat-label">Jeux Cités</div></div>
+    <div class="stat-card"><div class="stat-number" data-count="1">0</div><div class="stat-label">Serment Final</div></div>
+    <div class="stat-card"><div class="stat-number" data-count="6">0</div><div class="stat-label">Vertus du Gamer</div></div>
+</div>
+
+<main>
+    <article class="law" id="loi-1">
+        <div class="law-inner">
+            <div class="law-corner">I</div>
+            <div class="law-header"><div class="law-icon">🗡️</div><div><span class="law-num">Loi Première</span><h2 class="law-title">Loyauté au Jeu</h2></div></div>
+            <p class="law-tagline">« Entrer dans un monde, c'est en accepter les lois. »</p>
+            <p class="law-body">Un gamer d'honneur respecte l'univers dans lequel il pénètre. Chaque jeu est un contrat tacite : tu acceptes ses règles, ses défis, son équilibre.</p>
+            <div class="law-games"><span class="game-tag">The Witcher 3</span><span class="game-tag">Rust</span><span class="game-tag">Dark Souls III</span><span class="game-tag">Elden Ring</span></div>
+            <ul class="law-rules">
+                <li>Ne jamais utiliser de cheat codes ou hacks en mode multijoueur.</li>
+                <li>Respecter les mécaniques du jeu telles que conçues par les développeurs.</li>
+                <li>Accepter les règles d'un serveur ou d'une communauté avant d'y jouer.</li>
+            </ul>
+        </div>
+    </article>
+    <div class="section-divider">◆</div>
+
+    <article class="law" id="loi-2">
+        <div class="law-inner">
+            <div class="law-corner">II</div>
+            <div class="law-header"><div class="law-icon">🛡️</div><div><span class="law-num">Loi Deuxième</span><h2 class="law-title">Respect de l'Adversaire</h2></div></div>
+            <p class="law-tagline">« Ton ennemi d'aujourd'hui est l'épreuve qui te forge demain. »</p>
+            <p class="law-body">L'adversaire n'est pas ton ennemi — il est ton miroir. Sa résistance te pousse à progresser, sa victoire t'apprend l'humilité.</p>
+            <div class="law-games"><span class="game-tag">Street Fighter 6</span><span class="game-tag">League of Legends</span><span class="game-tag">Chess.com</span><span class="game-tag">Rocket League</span></div>
+            <ul class="law-rules">
+                <li>Pas d'insultes, pas de trash-talk malveillant, pas de harcèlement en jeu.</li>
+                <li>Reconnaître les bons coups de l'adversaire — un "gg wp" sincère vaut une victoire.</li>
+                <li>Ne jamais quitter une partie pour priver l'autre d'une victoire méritée.</li>
+            </ul>
+        </div>
+    </article>
+    <div class="section-divider">◆</div>
+
+    <article class="law" id="loi-3">
+        <div class="law-inner">
+            <div class="law-corner">III</div>
+            <div class="law-header"><div class="law-icon">⚜️</div><div><span class="law-num">Loi Troisième</span><h2 class="law-title">L'Esprit d'Équipe</h2></div></div>
+            <p class="law-tagline">« La victoire solitaire pèse moins que la défaite partagée. »</p>
+            <p class="law-body">En équipe, tu n'es plus un individu — tu es une fraction d'un organisme vivant. Tirer la couverture à soi, c'est affaiblir le groupe entier.</p>
+            <div class="law-games"><span class="game-tag">Valorant</span><span class="game-tag">Deep Rock Galactic</span><span class="game-tag">Overwatch 2</span><span class="game-tag">Sea of Thieves</span></div>
+            <ul class="law-rules">
+                <li>Communiquer clairement et sans agressivité, même sous pression.</li>
+                <li>Jouer le rôle assigné à l'équipe plutôt que celui qui te flatte.</li>
+                <li>Soutenir un coéquipier en difficulté plutôt que de l'accabler.</li>
+            </ul>
+        </div>
+    </article>
+    <div class="section-divider">◆</div>
+
+    <article class="law" id="loi-4">
+        <div class="law-inner">
+            <div class="law-corner">IV</div>
+            <div class="law-header"><div class="law-icon">🔥</div><div><span class="law-num">Loi Quatrième</span><h2 class="law-title">La Quête de Maîtrise</h2></div></div>
+            <p class="law-tagline">« La discipline frappe la cible que les autres ne voient même pas. »</p>
+            <p class="law-body">La maîtrise ne s'obtient pas par la chance ni par les raccourcis. Chaque échec est un cours gratuit — refuse de le gaspiller.</p>
+            <div class="law-games"><span class="game-tag">Dark Souls III</span><span class="game-tag">Hollow Knight</span><span class="game-tag">Celeste</span><span class="game-tag">Hades</span></div>
+            <ul class="law-rules">
+                <li>Analyser ses erreurs plutôt que d'en accuser le lag ou la malchance.</li>
+                <li>S'entraîner régulièrement sur des mécaniques précises, pas seulement jouer.</li>
+                <li>Chercher des ressources, des guides, des joueurs meilleurs pour s'améliorer.</li>
+            </ul>
+        </div>
+    </article>
+    <div class="section-divider">◆</div>
+
+    <article class="law" id="loi-5">
+        <div class="law-inner">
+            <div class="law-corner">V</div>
+            <div class="law-header"><div class="law-icon">⏳</div><div><span class="law-num">Loi Cinquième</span><h2 class="law-title">Discipline & Sang-Froid</h2></div></div>
+            <p class="law-tagline">« La rage est l'aveu que le jeu a gagné sur toi. »</p>
+            <p class="law-body">La tilt, la rage, la frustration incontrôlée — voilà les vrais ennemis de la performance. Un gamer discipliné sait respirer et revenir avec l'esprit clair.</p>
+            <div class="law-games"><span class="game-tag">Counter-Strike 2</span><span class="game-tag">StarCraft II</span><span class="game-tag">Teamfight Tactics</span><span class="game-tag">Elden Ring</span></div>
+            <ul class="law-rules">
+                <li>Faire une pause dès que la frustration impacte le jugement.</li>
+                <li>Ne jamais endommager son matériel ou exprimer sa colère sur ses proches.</li>
+                <li>Mettre en place des rituels de décompression : respiration, eau, marche courte.</li>
+            </ul>
+        </div>
+    </article>
+    <div class="section-divider">◆</div>
+
+    <article class="law" id="loi-6">
+        <div class="law-inner">
+            <div class="law-corner">VI</div>
+            <div class="law-header"><div class="law-icon">🌐</div><div><span class="law-num">Loi Sixième</span><h2 class="law-title">Gardien de la Communauté</h2></div></div>
+            <p class="law-tagline">« Une communauté ne vaut que par ceux qui choisissent de la protéger. »</p>
+            <p class="law-body">La communauté gaming est un bien commun. Tolérer la toxicité, c'est l'alimenter. Signaler, aider les nouveaux, partager le savoir.</p>
+            <div class="law-games"><span class="game-tag">Minecraft</span><span class="game-tag">Final Fantasy XIV</span><span class="game-tag">Among Us</span><span class="game-tag">Discord</span></div>
+            <ul class="law-rules">
+                <li>Signaler les comportements abusifs plutôt que de les ignorer.</li>
+                <li>Accueillir les nouveaux joueurs avec patience et bienveillance.</li>
+                <li>Partager ses connaissances librement — la générosité élève tout le monde.</li>
+            </ul>
+        </div>
+    </article>
+    <div class="section-divider">◆</div>
+
+    <article class="law" id="loi-7">
+        <div class="law-inner">
+            <div class="law-corner">VII</div>
+            <div class="law-header"><div class="law-icon">☯️</div><div><span class="law-num">Loi Septième</span><h2 class="law-title">L'Équilibre de Vie</h2></div></div>
+            <p class="law-tagline">« Le jeu enrichit la vie — il ne doit jamais la remplacer. »</p>
+            <p class="law-body">Sommeil, relations, santé, ambitions réelles — ces fondations permettent de jouer longtemps et bien. Le gamer d'honneur protège sa vie hors écran.</p>
+            <div class="law-games"><span class="game-tag">Stardew Valley</span><span class="game-tag">Journey</span><span class="game-tag">Animal Crossing</span><span class="game-tag">Abzû</span></div>
+            <ul class="law-rules">
+                <li>Respecter un nombre d'heures de jeu cohérent avec ses obligations.</li>
+                <li>Ne jamais sacrifier sommeil, repas ou relations importantes pour une session.</li>
+                <li>Reconnaître les signaux d'addiction et chercher de l'aide sans honte.</li>
+            </ul>
+        </div>
+    </article>
+</main>
+
+<section class="serment" id="serment">
+    <h2 class="serment-title">⚔ Serment du Gamer ⚔</h2>
+    <div class="serment-lines">
+        <p class="serment-line">Je joue avec intégrité.</p>
+        <p class="serment-line">Je progresse avec patience.</p>
+        <p class="serment-line">Je respecte mes adversaires.</p>
+        <p class="serment-line">Je protège ma communauté.</p>
+        <p class="serment-line">Je garde le contrôle.</p>
+        <p class="serment-line">Je joue avec honneur.</p>
+    </div>
+    <button class="pledge-btn" id="pledgeBtn" onclick="takePledge()">Prêter Serment</button>
+    <p id="pledgeMsg"></p>
+    <div class="live-counter">
+        <div class="live-dot"></div>
+        <div>
+            <div class="live-number" id="liveNumber">…</div>
+            <div class="live-label">Serments prononcés dans le monde</div>
+        </div>
+    </div>
+</section>
+
+<div class="map-section">
+    <h2 class="map-title">La Carte des Serments</h2>
+    <p class="map-subtitle">Chaque point de lumière est un gamer lié par l'honneur</p>
+    <div class="map-wrapper">
+        <div id="map"></div>
+        <div id="mapLoader">
+            <div class="map-spinner"></div>
+            <span>Chargement des serments…</span>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div style="margin-bottom:10px;font-size:1.2rem;opacity:.4;">⚔ ◆ ⚔</div>
+    <p>CODEX GAMER · SEPT LOIS · UN SERMENT</p>
+    <p style="margin-top:6px;opacity:.5;">« Joue comme si l'honneur de la communauté reposait sur chacune de tes actions. »</p>
+</footer>
+
+<button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">▲</button>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* =============================================
+   CONFIG — injectée par GitHub Actions au build
+   Les placeholders __AIRTABLE_TOKEN__ et
+   __AIRTABLE_BASE_ID__ sont remplacés par sed
+   depuis les GitHub Secrets. Ne jamais mettre
+   de vraies valeurs ici.
+   ============================================= */
+var AIRTABLE_TOKEN   = '__AIRTABLE_TOKEN__';
+var AIRTABLE_BASE_ID = '__AIRTABLE_BASE_ID__';
+var AIRTABLE_TABLE   = 'Serments';
+var AIRTABLE_URL     = 'https://api.airtable.com/v0/' + AIRTABLE_BASE_ID + '/' + encodeURIComponent(AIRTABLE_TABLE);
+var PLEDGED_KEY      = 'codexGamer_pledged_v3';
+
+/* =============================================
+   CARTE LEAFLET
+   ============================================= */
+var map = L.map('map', { zoomControl: true, scrollWheelZoom: false }).setView([25, 10], 2);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18, attribution: '© OpenStreetMap'
+}).addTo(map);
+
+var goldIcon = L.divIcon({
+    className: '',
+    html: '<div style="width:11px;height:11px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f0d080,#c9a84c);border:1px solid rgba(240,208,128,.5);box-shadow:0 0 8px rgba(201,168,76,.9),0 0 18px rgba(201,168,76,.35);"></div>',
+    iconSize: [11, 11], iconAnchor: [5, 5], popupAnchor: [0, -8]
+});
+
+/* =============================================
+   ANIMER UN NOMBRE
+   ============================================= */
+function animateNumber(el, target) {
+    var from = parseInt(el.textContent) || 0;
+    var duration = 1100;
+    var start = performance.now();
+    function tick(now) {
+        var t = Math.min((now - start) / duration, 1);
+        var ease = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(from + (target - from) * ease);
+        if (t < 1) { requestAnimationFrame(tick); }
+    }
+    requestAnimationFrame(tick);
+}
+
+/* =============================================
+   CHARGER LES DONNÉES DEPUIS AIRTABLE
+   ============================================= */
+function loadData() {
+    var allRecords = [];
+
+    function fetchPage(offset) {
+        var url = AIRTABLE_URL + '?pageSize=100';
+        if (offset) { url += '&offset=' + offset; }
+        fetch(url, { headers: { 'Authorization': 'Bearer ' + AIRTABLE_TOKEN } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.records) { allRecords = allRecords.concat(data.records); }
+            if (data.offset) { fetchPage(data.offset); }
+            else { renderData(allRecords); }
+        })
+        .catch(function(err) {
+            console.error('loadData error:', err);
+            document.getElementById('mapLoader').innerHTML =
+                '<span style="color:rgba(240,160,100,.9);font-size:.8rem;max-width:320px;text-align:center;line-height:1.6">⚠ Impossible de charger les serments.</span>';
+        });
+    }
+
+    fetchPage(null);
+}
+
+function renderData(records) {
+    animateNumber(document.getElementById('liveNumber'), records.length);
+    records.forEach(function(rec) {
+        var f   = rec.fields;
+        var lat = parseFloat(f.latitude);
+        var lng = parseFloat(f.longitude);
+        if (!isFinite(lat) || !isFinite(lng)) { return; }
+        var ville = f.ville || 'Gamer Anonyme';
+        var date  = f.timestamp ? new Date(f.timestamp).toLocaleDateString('fr-FR') : '';
+        L.marker([lat, lng], { icon: goldIcon }).addTo(map)
+         .bindPopup('<strong style="color:#f0d080">' + ville + '</strong><br><span style="opacity:.55;font-size:.68rem">' + date + '</span>');
+    });
+    document.getElementById('mapLoader').classList.add('hidden');
+}
+
+/* =============================================
+   ENREGISTRER LE SERMENT
+   ============================================= */
+function savePledge(lat, lng, ville) {
+    var fields = { timestamp: new Date().toISOString(), ville: ville || 'Gamer Anonyme' };
+    if (lat !== '' && isFinite(parseFloat(lat))) {
+        fields.latitude  = parseFloat(lat);
+        fields.longitude = parseFloat(lng);
+    }
+    return fetch(AIRTABLE_URL, {
+        method : 'POST',
+        headers: { 'Authorization': 'Bearer ' + AIRTABLE_TOKEN, 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ fields: fields })
+    }).then(function(r) {
+        if (!r.ok) { throw new Error('Airtable ' + r.status); }
+        return r.json();
+    });
+}
+
+/* =============================================
+   PRÊTER SERMENT
+   ============================================= */
+function takePledge() {
+    if (localStorage.getItem(PLEDGED_KEY) === '1') { return; }
+    var btn = document.getElementById('pledgeBtn');
+    var msg = document.getElementById('pledgeMsg');
+    btn.disabled    = true;
+    btn.textContent = '⏳ Transmission…';
+
+    var pledgeLat = '', pledgeLng = '', pledgeVille = 'Gamer Anonyme';
+
+    function finalize() {
+        savePledge(pledgeLat, pledgeLng, pledgeVille)
+        .then(function() {
+            localStorage.setItem(PLEDGED_KEY, '1');
+            btn.classList.add('pledged');
+            btn.disabled    = true;
+            btn.textContent = '✓ Serment Prononcé';
+            msg.textContent = "✓ Serment prononcé. Tu es désormais lié par l'Honneur.";
+            msg.className   = 'show';
+            var current = parseInt(document.getElementById('liveNumber').textContent) || 0;
+            animateNumber(document.getElementById('liveNumber'), current + 1);
+            if (pledgeLat !== '' && isFinite(parseFloat(pledgeLat))) {
+                var lat = parseFloat(pledgeLat), lng = parseFloat(pledgeLng);
+                L.marker([lat, lng], { icon: goldIcon }).addTo(map)
+                 .bindPopup('<strong style="color:#f0d080">' + pledgeVille + '</strong><br><span style="opacity:.55;font-size:.68rem">Aujourd\'hui</span>')
+                 .openPopup();
+                map.flyTo([lat, lng], 6, { animate: true, duration: 1.5 });
+            }
+        })
+        .catch(function(err) {
+            console.error('savePledge error:', err);
+            btn.disabled    = false;
+            btn.textContent = 'Prêter Serment';
+            msg.textContent = '⚠ Erreur lors de l\'enregistrement — réessaie.';
+            msg.className   = 'error';
+        });
+    }
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                pledgeLat = pos.coords.latitude;
+                pledgeLng = pos.coords.longitude;
+                fetch('https://nominatim.openstreetmap.org/reverse?lat=' + pledgeLat + '&lon=' + pledgeLng + '&format=json&accept-language=fr')
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    pledgeVille = (d.address && (d.address.city || d.address.town || d.address.village || d.address.county || d.address.country)) || 'Inconnu';
+                    finalize();
+                })
+                .catch(function() { finalize(); });
+            },
+            function() { finalize(); },
+            { timeout: 7000 }
+        );
+    } else { finalize(); }
+}
+
+/* =============================================
+   RESTAURER L'ÉTAT DU BOUTON
+   ============================================= */
+function initPledge() {
+    if (localStorage.getItem(PLEDGED_KEY) === '1') {
+        var btn = document.getElementById('pledgeBtn');
+        var msg = document.getElementById('pledgeMsg');
+        btn.classList.add('pledged');
+        btn.disabled    = true;
+        btn.textContent = '✓ Serment Prononcé';
+        msg.textContent = "✓ Serment prononcé. Tu es désormais lié par l'Honneur.";
+        msg.className   = 'show';
+    }
+}
+
+/* =============================================
+   ANIMATIONS
+   ============================================= */
+document.querySelectorAll('.law').forEach(function(el) {
+    new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) { if (e.isIntersecting) { el.classList.add('visible'); } });
+    }, { threshold: 0.1 }).observe(el);
+});
+new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+        if (e.isIntersecting) {
+            e.target.querySelectorAll('.serment-line').forEach(function(l, i) {
+                setTimeout(function() { l.classList.add('visible'); }, i * 180);
+            });
+        }
+    });
+}, { threshold: 0.3 }).observe(document.querySelector('.serment'));
+
+var statObs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+        if (!e.isIntersecting) { return; }
+        statObs.unobserve(e.target);
+        var el = e.target.querySelector('.stat-number[data-count]');
+        if (!el) { return; }
+        var target = parseInt(el.dataset.count), c = 0;
+        var id = setInterval(function() { el.textContent = Math.min(++c, target); if (c >= target) { clearInterval(id); } }, 75);
+    });
+}, { threshold: 0.4 });
+document.querySelectorAll('.stat-card').forEach(function(c) { statObs.observe(c); });
+
+window.addEventListener('scroll', function() {
+    var pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('scrollTop').classList.toggle('visible', window.scrollY > 250);
+});
+
+/* =============================================
+   INIT
+   ============================================= */
+initPledge();
+loadData();
+</script>
+</body>
+</html>
