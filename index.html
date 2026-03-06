@@ -91,6 +91,9 @@
         .scroll-top.visible { opacity: 1; transform: translateY(0); }
         .progress-bar { position: fixed; top: 0; left: 0; height: 2px; background: linear-gradient(90deg, var(--gold), var(--gold-light)); z-index: 200; width: 0; box-shadow: 0 0 8px var(--gold); }
         @media(max-width:600px) { .law-inner { padding: 28px 22px; } nav a { padding: 12px 8px; font-size: .6rem; } .live-counter { flex-direction: column; gap: 8px; } }
+        .share-btn { font-family: 'Cinzel', serif; font-size: .75rem; letter-spacing: .12em; padding: 10px 24px; border: 1px solid rgba(201,168,76,.35); background: rgba(201,168,76,.08); color: var(--gold-light); cursor: pointer; transition: all .2s; border-radius: 2px; }
+        .share-btn:hover { background: rgba(201,168,76,.18); border-color: var(--gold); transform: translateY(-1px); }
+        .share-btn.copied { background: rgba(60,160,60,.15); border-color: #4caf50; color: #a0f0a0; }
     </style>
 </head>
 <body>
@@ -225,7 +228,7 @@
             <div class="law-corner">VII</div>
             <div class="law-header"><div class="law-icon">☯️</div><div><span class="law-num">Loi Septième</span><h2 class="law-title">L'Équilibre de Vie</h2></div></div>
             <p class="law-tagline">« Le jeu enrichit la vie — il ne doit jamais la remplacer. »</p>
-            <p class="law-body">Sommeil, relations, santé, ambitions réelles — ces fondations permettent de jouer longtemps et bien. Le gamer d'honneur protège sa vie hors écran.</p>
+            <p class="law-body">Sommeil, relations, santé, ambitions réelles — ces fondations permettent de jouer longtemps et bien.</p>
             <div class="law-games"><span class="game-tag">Stardew Valley</span><span class="game-tag">Journey</span><span class="game-tag">Animal Crossing</span><span class="game-tag">Abzû</span></div>
             <ul class="law-rules">
                 <li>Respecter un nombre d'heures de jeu cohérent avec ses obligations.</li>
@@ -255,6 +258,14 @@
             <div class="live-label">Serments prononcés dans le monde</div>
         </div>
     </div>
+    <div class="share-section" id="shareSection" style="display:none;margin-top:32px;display:none;flex-direction:column;align-items:center;gap:14px;">
+        <p style="font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.2em;color:rgba(201,168,76,.6);text-transform:uppercase;">Partage ton serment</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+            <button onclick="shareTwitter()" class="share-btn share-x">𝕏 Partager sur X</button>
+            <button onclick="copyLink()" class="share-btn share-copy" id="copyBtn">🔗 Copier le lien</button>
+        </div>
+    </div>
+    <canvas id="confettiCanvas" style="position:fixed;inset:0;pointer-events:none;z-index:9999;width:100%;height:100%;"></canvas>
 </section>
 
 <div class="map-section">
@@ -277,219 +288,296 @@
 
 <button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">▲</button>
 
-<script src="config.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp }                        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, addDoc,
+         onSnapshot, query, orderBy }           from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
 /* =============================================
-   CONFIG — chargée depuis config.js
-   config.js est généré par GitHub Actions
-   à partir des GitHub Secrets (jamais committé)
+   FIREBASE CONFIG — publique par design
+   La sécurité est gérée par les règles Firestore
    ============================================= */
-var AIRTABLE_TOKEN   = window.AIRTABLE_TOKEN   || '';
-var AIRTABLE_BASE_ID = window.AIRTABLE_BASE_ID || '';
-var AIRTABLE_TABLE   = 'Serments';
-var AIRTABLE_URL     = 'https://api.airtable.com/v0/' + AIRTABLE_BASE_ID + '/' + encodeURIComponent(AIRTABLE_TABLE);
-var PLEDGED_KEY      = 'codexGamer_pledged_v3';
+const firebaseConfig = {
+    apiKey           : 'AIzaSyBfCDtB9jkn8CTXXtiRL8ttxBAscIuJdoY',
+    authDomain       : 'onlineshoplist-f1a50.firebaseapp.com',
+    projectId        : 'onlineshoplist-f1a50',
+    storageBucket    : 'onlineshoplist-f1a50.firebasestorage.app',
+    messagingSenderId: '900957420139',
+    appId            : '1:900957420139:web:c73dc30498091bcdde4f2e'
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+const COLLECTION  = 'serments';
+const PLEDGED_KEY = 'codexGamer_pledged_v4';
 
 /* =============================================
    CARTE LEAFLET
    ============================================= */
-var map = L.map('map', { zoomControl: true, scrollWheelZoom: false }).setView([25, 10], 2);
+const map = L.map('map', { zoomControl: true, scrollWheelZoom: false }).setView([25, 10], 2);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 18, attribution: '© OpenStreetMap'
 }).addTo(map);
 
-var goldIcon = L.divIcon({
+const goldIcon = L.divIcon({
     className: '',
     html: '<div style="width:11px;height:11px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f0d080,#c9a84c);border:1px solid rgba(240,208,128,.5);box-shadow:0 0 8px rgba(201,168,76,.9),0 0 18px rgba(201,168,76,.35);"></div>',
-    iconSize: [11, 11], iconAnchor: [5, 5], popupAnchor: [0, -8]
+    iconSize: [11,11], iconAnchor: [5,5], popupAnchor: [0,-8]
 });
 
 /* =============================================
    ANIMER UN NOMBRE
    ============================================= */
 function animateNumber(el, target) {
-    var from = parseInt(el.textContent) || 0;
-    var duration = 1100;
-    var start = performance.now();
+    const from = parseInt(el.textContent) || 0;
+    const duration = 1100;
+    const start = performance.now();
     function tick(now) {
-        var t = Math.min((now - start) / duration, 1);
-        var ease = 1 - Math.pow(1 - t, 3);
+        const t = Math.min((now - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - t, 3);
         el.textContent = Math.round(from + (target - from) * ease);
-        if (t < 1) { requestAnimationFrame(tick); }
+        if (t < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
 }
 
 /* =============================================
-   CHARGER LES DONNÉES DEPUIS AIRTABLE
+   ÉCOUTE EN TEMPS RÉEL — onSnapshot Firestore
+   Met à jour le compteur et la carte en live
    ============================================= */
+const markersOnMap = new Set();
+
 function loadData() {
-    var allRecords = [];
+    const q = query(collection(db, COLLECTION), orderBy('timestamp', 'desc'));
+    onSnapshot(q, snap => {
+        const docs = snap.docs.map(d => d.data());
 
-    function fetchPage(offset) {
-        var url = AIRTABLE_URL + '?pageSize=100';
-        if (offset) { url += '&offset=' + offset; }
-        fetch(url, { headers: { 'Authorization': 'Bearer ' + AIRTABLE_TOKEN } })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.records) { allRecords = allRecords.concat(data.records); }
-            if (data.offset) { fetchPage(data.offset); }
-            else { renderData(allRecords); }
-        })
-        .catch(function(err) {
-            console.error('loadData error:', err);
-            document.getElementById('mapLoader').innerHTML =
-                '<span style="color:rgba(240,160,100,.9);font-size:.8rem;max-width:320px;text-align:center;line-height:1.6">⚠ Impossible de charger les serments.</span>';
+        // Mettre à jour le compteur en live
+        animateNumber(document.getElementById('liveNumber'), docs.length);
+
+        // Ajouter uniquement les nouveaux marqueurs
+        snap.docChanges().forEach(change => {
+            if (change.type !== 'added') return;
+            const d = change.doc.data();
+            if (!isFinite(d.lat) || !isFinite(d.lng)) return;
+            const key = `${d.lat},${d.lng}`;
+            if (markersOnMap.has(key)) return;
+            markersOnMap.add(key);
+            L.marker([d.lat, d.lng], { icon: goldIcon })
+             .addTo(map)
+             .bindPopup(
+                 '<strong style="color:#f0d080">' + (d.ville || 'Gamer') + '</strong>' +
+                 (d.timestamp ? '<br><span style="opacity:.55;font-size:.68rem">' +
+                 new Date(d.timestamp).toLocaleDateString('fr-FR') + '</span>' : '')
+             );
         });
-    }
 
-    fetchPage(null);
-}
-
-function renderData(records) {
-    animateNumber(document.getElementById('liveNumber'), records.length);
-    records.forEach(function(rec) {
-        var f   = rec.fields;
-        var lat = parseFloat(f.latitude);
-        var lng = parseFloat(f.longitude);
-        if (!isFinite(lat) || !isFinite(lng)) { return; }
-        var ville = f.ville || 'Gamer Anonyme';
-        var date  = f.timestamp ? new Date(f.timestamp).toLocaleDateString('fr-FR') : '';
-        L.marker([lat, lng], { icon: goldIcon }).addTo(map)
-         .bindPopup('<strong style="color:#f0d080">' + ville + '</strong><br><span style="opacity:.55;font-size:.68rem">' + date + '</span>');
+        document.getElementById('mapLoader').classList.add('hidden');
+    }, err => {
+        console.error('loadData error:', err);
+        document.getElementById('mapLoader').innerHTML =
+            '<span style="color:rgba(240,160,100,.9);font-size:.8rem;max-width:320px;text-align:center;line-height:1.6">⚠ Impossible de charger les serments.</span>';
     });
-    document.getElementById('mapLoader').classList.add('hidden');
 }
 
 /* =============================================
-   ENREGISTRER LE SERMENT
+   ENREGISTRER UN SERMENT DANS FIRESTORE
    ============================================= */
-function savePledge(lat, lng, ville) {
-    var fields = { timestamp: new Date().toISOString(), ville: ville || 'Gamer Anonyme' };
-    if (lat !== '' && isFinite(parseFloat(lat))) {
-        fields.latitude  = parseFloat(lat);
-        fields.longitude = parseFloat(lng);
+async function savePledge(lat, lng, ville) {
+    const doc = {
+        timestamp: Date.now(),
+        ville    : ville || 'Gamer Anonyme'
+    };
+    if (isFinite(lat) && isFinite(lng)) {
+        doc.lat = lat;
+        doc.lng = lng;
     }
-    return fetch(AIRTABLE_URL, {
-        method : 'POST',
-        headers: { 'Authorization': 'Bearer ' + AIRTABLE_TOKEN, 'Content-Type': 'application/json' },
-        body   : JSON.stringify({ fields: fields })
-    }).then(function(r) {
-        if (!r.ok) { throw new Error('Airtable ' + r.status); }
-        return r.json();
-    });
+    await addDoc(collection(db, COLLECTION), doc);
 }
 
 /* =============================================
    PRÊTER SERMENT
    ============================================= */
-function takePledge() {
-    if (localStorage.getItem(PLEDGED_KEY) === '1') { return; }
-    var btn = document.getElementById('pledgeBtn');
-    var msg = document.getElementById('pledgeMsg');
+window.takePledge = async function() {
+    if (localStorage.getItem(PLEDGED_KEY) === '1') return;
+
+    const btn = document.getElementById('pledgeBtn');
+    const msg = document.getElementById('pledgeMsg');
     btn.disabled    = true;
     btn.textContent = '⏳ Transmission…';
 
-    var pledgeLat = '', pledgeLng = '', pledgeVille = 'Gamer Anonyme';
+    let pledgeLat = NaN, pledgeLng = NaN, pledgeVille = 'Gamer Anonyme';
 
-    function finalize() {
-        savePledge(pledgeLat, pledgeLng, pledgeVille)
-        .then(function() {
-            localStorage.setItem(PLEDGED_KEY, '1');
-            btn.classList.add('pledged');
-            btn.disabled    = true;
-            btn.textContent = '✓ Serment Prononcé';
-            msg.textContent = "✓ Serment prononcé. Tu es désormais lié par l'Honneur.";
-            msg.className   = 'show';
-            var current = parseInt(document.getElementById('liveNumber').textContent) || 0;
-            animateNumber(document.getElementById('liveNumber'), current + 1);
-            if (pledgeLat !== '' && isFinite(parseFloat(pledgeLat))) {
-                var lat = parseFloat(pledgeLat), lng = parseFloat(pledgeLng);
-                L.marker([lat, lng], { icon: goldIcon }).addTo(map)
-                 .bindPopup('<strong style="color:#f0d080">' + pledgeVille + '</strong><br><span style="opacity:.55;font-size:.68rem">Aujourd\'hui</span>')
-                 .openPopup();
-                map.flyTo([lat, lng], 6, { animate: true, duration: 1.5 });
-            }
-        })
-        .catch(function(err) {
-            console.error('savePledge error:', err);
-            btn.disabled    = false;
-            btn.textContent = 'Prêter Serment';
-            msg.textContent = '⚠ Erreur lors de l\'enregistrement — réessaie.';
-            msg.className   = 'error';
-        });
-    }
-
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            function(pos) {
-                pledgeLat = pos.coords.latitude;
-                pledgeLng = pos.coords.longitude;
-                fetch('https://nominatim.openstreetmap.org/reverse?lat=' + pledgeLat + '&lon=' + pledgeLng + '&format=json&accept-language=fr')
-                .then(function(r) { return r.json(); })
-                .then(function(d) {
-                    pledgeVille = (d.address && (d.address.city || d.address.town || d.address.village || d.address.county || d.address.country)) || 'Inconnu';
-                    finalize();
-                })
-                .catch(function() { finalize(); });
-            },
-            function() { finalize(); },
-            { timeout: 7000 }
+    // Géolocalisation
+    try {
+        const pos = await new Promise((resolve, reject) =>
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 7000 })
         );
-    } else { finalize(); }
-}
+        pledgeLat = pos.coords.latitude;
+        pledgeLng = pos.coords.longitude;
+        try {
+            const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pledgeLat}&lon=${pledgeLng}&format=json&accept-language=fr`);
+            const d = await r.json();
+            pledgeVille = d.address?.city || d.address?.town || d.address?.village || d.address?.county || d.address?.country || 'Inconnu';
+        } catch(_) {}
+    } catch(_) {}
+
+    // Enregistrement Firestore
+    try {
+        await savePledge(pledgeLat, pledgeLng, pledgeVille);
+
+        localStorage.setItem(PLEDGED_KEY, '1');
+        btn.classList.add('pledged');
+        btn.disabled    = true;
+        btn.textContent = '✓ Serment Prononcé';
+        msg.textContent = "✓ Serment prononcé. Tu es désormais lié par l'Honneur.";
+        msg.className   = 'show';
+
+        // Confettis 🎉
+        launchConfetti();
+
+        // Afficher les boutons de partage
+        const shareSection = document.getElementById('shareSection');
+        shareSection.style.display = 'flex';
+
+        const current = parseInt(document.getElementById('liveNumber').textContent) || 0;
+        animateNumber(document.getElementById('liveNumber'), current + 1);
+
+        if (isFinite(pledgeLat) && isFinite(pledgeLng)) {
+            L.marker([pledgeLat, pledgeLng], { icon: goldIcon })
+             .addTo(map)
+             .bindPopup('<strong style="color:#f0d080">' + pledgeVille + '</strong><br><span style="opacity:.55;font-size:.68rem">Aujourd\'hui</span>')
+             .openPopup();
+            map.flyTo([pledgeLat, pledgeLng], 6, { animate: true, duration: 1.5 });
+        }
+    } catch(err) {
+        console.error('savePledge error:', err);
+        btn.disabled    = false;
+        btn.textContent = 'Prêter Serment';
+        msg.textContent = '⚠ Erreur lors de l\'enregistrement — réessaie.';
+        msg.className   = 'error';
+    }
+};
 
 /* =============================================
    RESTAURER L'ÉTAT DU BOUTON
    ============================================= */
 function initPledge() {
     if (localStorage.getItem(PLEDGED_KEY) === '1') {
-        var btn = document.getElementById('pledgeBtn');
-        var msg = document.getElementById('pledgeMsg');
+        const btn = document.getElementById('pledgeBtn');
+        const msg = document.getElementById('pledgeMsg');
         btn.classList.add('pledged');
         btn.disabled    = true;
         btn.textContent = '✓ Serment Prononcé';
         msg.textContent = "✓ Serment prononcé. Tu es désormais lié par l'Honneur.";
         msg.className   = 'show';
+        document.getElementById('shareSection').style.display = 'flex';
     }
 }
 
 /* =============================================
-   ANIMATIONS
+   ANIMATIONS AU SCROLL
    ============================================= */
-document.querySelectorAll('.law').forEach(function(el) {
-    new IntersectionObserver(function(entries) {
-        entries.forEach(function(e) { if (e.isIntersecting) { el.classList.add('visible'); } });
+document.querySelectorAll('.law').forEach(el => {
+    new IntersectionObserver(entries => {
+        entries.forEach(e => { if (e.isIntersecting) el.classList.add('visible'); });
     }, { threshold: 0.1 }).observe(el);
 });
-new IntersectionObserver(function(entries) {
-    entries.forEach(function(e) {
-        if (e.isIntersecting) {
-            e.target.querySelectorAll('.serment-line').forEach(function(l, i) {
-                setTimeout(function() { l.classList.add('visible'); }, i * 180);
-            });
-        }
+
+new IntersectionObserver(entries => {
+    entries.forEach(e => {
+        if (e.isIntersecting)
+            e.target.querySelectorAll('.serment-line').forEach((l, i) =>
+                setTimeout(() => l.classList.add('visible'), i * 180));
     });
 }, { threshold: 0.3 }).observe(document.querySelector('.serment'));
 
-var statObs = new IntersectionObserver(function(entries) {
-    entries.forEach(function(e) {
-        if (!e.isIntersecting) { return; }
+const statObs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+        if (!e.isIntersecting) return;
         statObs.unobserve(e.target);
-        var el = e.target.querySelector('.stat-number[data-count]');
-        if (!el) { return; }
-        var target = parseInt(el.dataset.count), c = 0;
-        var id = setInterval(function() { el.textContent = Math.min(++c, target); if (c >= target) { clearInterval(id); } }, 75);
+        const el = e.target.querySelector('.stat-number[data-count]');
+        if (!el) return;
+        const target = +el.dataset.count;
+        let c = 0;
+        const id = setInterval(() => { el.textContent = Math.min(++c, target); if (c >= target) clearInterval(id); }, 75);
     });
 }, { threshold: 0.4 });
-document.querySelectorAll('.stat-card').forEach(function(c) { statObs.observe(c); });
+document.querySelectorAll('.stat-card').forEach(c => statObs.observe(c));
 
-window.addEventListener('scroll', function() {
-    var pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
+window.addEventListener('scroll', () => {
+    const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
     document.getElementById('progressBar').style.width = pct + '%';
     document.getElementById('scrollTop').classList.toggle('visible', window.scrollY > 250);
 });
+
+/* =============================================
+   CONFETTIS
+   ============================================= */
+function launchConfetti() {
+    const canvas = document.getElementById('confettiCanvas');
+    const ctx    = canvas.getContext('2d');
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const COLORS  = ['#f0d080','#c9a84c','#ffffff','#a0f0a0','#80c0ff'];
+    const PIECES  = 120;
+    const particles = Array.from({ length: PIECES }, () => ({
+        x    : Math.random() * canvas.width,
+        y    : -10 - Math.random() * 100,
+        r    : 4 + Math.random() * 6,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        speed: 2 + Math.random() * 4,
+        angle: Math.random() * Math.PI * 2,
+        spin : (Math.random() - 0.5) * 0.2,
+        drift: (Math.random() - 0.5) * 1.5,
+        alpha: 1
+    }));
+
+    let frame;
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let alive = false;
+        particles.forEach(p => {
+            if (p.alpha <= 0) return;
+            alive = true;
+            p.y     += p.speed;
+            p.x     += p.drift;
+            p.angle += p.spin;
+            if (p.y > canvas.height * 0.7) p.alpha -= 0.02;
+            ctx.save();
+            ctx.globalAlpha = p.alpha;
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.angle);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 0.5);
+            ctx.restore();
+        });
+        if (alive) { frame = requestAnimationFrame(draw); }
+        else { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+    }
+    draw();
+    setTimeout(() => { cancelAnimationFrame(frame); ctx.clearRect(0, 0, canvas.width, canvas.height); }, 4000);
+}
+
+/* =============================================
+   PARTAGE
+   ============================================= */
+window.shareTwitter = function() {
+    const text = encodeURIComponent('Je viens de prêter le Serment du Gamer ⚔ — 7 lois pour jouer avec honneur. Et toi ?');
+    const url  = encodeURIComponent(window.location.href);
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+};
+
+window.copyLink = function() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = '✓ Lien copié !';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = '🔗 Copier le lien'; btn.classList.remove('copied'); }, 2500);
+    });
+};
 
 /* =============================================
    INIT
@@ -497,5 +585,7 @@ window.addEventListener('scroll', function() {
 initPledge();
 loadData();
 </script>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </body>
 </html>
