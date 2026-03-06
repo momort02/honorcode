@@ -7,7 +7,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600&family=Raleway:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <style>
-        :root { --gold: #c9a84c; --gold-light: #f0d080; --dark: #0a0a0f; --text: #d0cfc8; }
+        :root { --gold: #c9a84c; --gold-light: #f0d080; --dark: #0a0a0f; --text: #d0cfc8; --bg-card: rgba(24,24,40,.85); --bg-section: #0e0e20; }
+        html.light { --dark: #f5f0e8; --text: #2a2520; --bg-card: rgba(255,252,245,.92); --bg-section: #ede8dc; }
+        html.light body { background: var(--dark); }
+        html.light .law-inner { background: var(--bg-card); border-color: rgba(201,168,76,.3); }
+        html.light nav { background: rgba(245,240,232,.95); border-color: rgba(201,168,76,.25); }
+        html.light nav a { color: #3a3020; }
+        html.light .stat-card { background: rgba(255,252,245,.9); border-color: rgba(201,168,76,.25); }
+        html.light .serment { background: linear-gradient(135deg, #ede8dc, #e5dfd0); }
+        html.light .live-counter { background: rgba(201,168,76,.1); }
+        html.light footer { background: #e8e2d4; }
+        html.light .leaflet-tile { filter: brightness(.9) saturate(.6); }
+        html.light #mapLoader { background: rgba(245,240,232,.9); }
+        html.light .theme-btn { background: rgba(10,10,15,.08); color: #3a3020; border-color: rgba(201,168,76,.4); }
+
+        .theme-btn { position: fixed; top: 16px; right: 16px; z-index: 200; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.06); border: 1px solid rgba(201,168,76,.25); color: var(--gold); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .3s; }
+        .theme-btn:hover { background: rgba(201,168,76,.15); transform: rotate(20deg); }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
         body { background: var(--dark); color: var(--text); font-family: 'Raleway', sans-serif; font-weight: 300; line-height: 1.7; overflow-x: hidden; }
@@ -94,11 +109,60 @@
         .share-btn { font-family: 'Cinzel', serif; font-size: .75rem; letter-spacing: .12em; padding: 10px 24px; border: 1px solid rgba(201,168,76,.35); background: rgba(201,168,76,.08); color: var(--gold-light); cursor: pointer; transition: all .2s; border-radius: 2px; }
         .share-btn:hover { background: rgba(201,168,76,.18); border-color: var(--gold); transform: translateY(-1px); }
         .share-btn.copied { background: rgba(60,160,60,.15); border-color: #4caf50; color: #a0f0a0; }
+
+        /* Modal stats */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 500; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .3s; padding: 20px; }
+        .modal-overlay.open { opacity: 1; pointer-events: all; }
+        .modal { background: #0e0e1e; border: 1px solid rgba(201,168,76,.25); border-radius: 6px; padding: 40px 36px; max-width: 600px; width: 100%; max-height: 80vh; overflow-y: auto; position: relative; }
+        html.light .modal { background: #f5f0e8; }
+        .modal-title { font-family: 'Cinzel Decorative', serif; font-size: 1.3rem; color: var(--gold-light); margin-bottom: 32px; text-align: center; letter-spacing: .08em; }
+        .modal-close { position: absolute; top: 14px; right: 18px; background: none; border: none; color: var(--gold); font-size: 1.4rem; cursor: pointer; opacity: .6; transition: opacity .2s; }
+        .modal-close:hover { opacity: 1; }
+        .stat-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+        .stat-row-label { font-family: 'Cinzel', serif; font-size: .72rem; color: var(--text); opacity: .8; min-width: 130px; letter-spacing: .05em; }
+        .stat-row-bar { flex: 1; height: 8px; background: rgba(201,168,76,.1); border-radius: 4px; overflow: hidden; }
+        .stat-row-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-light)); border-radius: 4px; width: 0; transition: width 1s cubic-bezier(.4,0,.2,1); }
+        .stat-row-count { font-family: 'Cinzel Decorative', serif; font-size: .85rem; color: var(--gold-light); min-width: 28px; text-align: right; }
+        .stats-subtitle { font-family: 'Cinzel', serif; font-size: .7rem; letter-spacing: .18em; color: rgba(201,168,76,.55); text-transform: uppercase; margin: 24px 0 14px; }
+        .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 80px; margin-top: 8px; }
+        .chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .chart-bar { width: 100%; background: linear-gradient(180deg, var(--gold-light), var(--gold)); border-radius: 2px 2px 0 0; transition: height 1s cubic-bezier(.4,0,.2,1); min-height: 2px; }
+        .chart-bar-label { font-family: 'Cinzel', serif; font-size: .55rem; color: rgba(201,168,76,.6); letter-spacing: .05em; white-space: nowrap; }
+
+        /* Badge modal */
+        .badge-modal { background: #0a0a14; border: 1px solid rgba(201,168,76,.3); border-radius: 6px; padding: 40px 32px; max-width: 420px; width: 100%; position: relative; text-align: center; }
+        html.light .badge-modal { background: #f5f0e8; }
+        #badgeCanvas { border: 2px solid rgba(201,168,76,.2); border-radius: 4px; max-width: 100%; }
+        .badge-dl-btn { margin-top: 20px; font-family: 'Cinzel', serif; font-size: .78rem; letter-spacing: .15em; padding: 12px 32px; background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: #0a0a0f; border: none; cursor: pointer; border-radius: 2px; transition: transform .2s; }
+        .badge-dl-btn:hover { transform: translateY(-2px); }
     </style>
 </head>
 <body>
 
 <div class="progress-bar" id="progressBar"></div>
+
+<!-- Modal Statistiques -->
+<div class="modal-overlay" id="statsModal">
+    <div class="modal">
+        <button class="modal-close" onclick="document.getElementById('statsModal').classList.remove('open')">✕</button>
+        <h2 class="modal-title">📊 Statistiques</h2>
+        <p class="stats-subtitle">Top villes</p>
+        <div id="statsCities"></div>
+        <p class="stats-subtitle">Serments par jour (7 derniers jours)</p>
+        <div class="chart-bars" id="statsChart"></div>
+    </div>
+</div>
+
+<!-- Modal Badge -->
+<div class="modal-overlay" id="badgeModal">
+    <div class="badge-modal">
+        <button class="modal-close" onclick="document.getElementById('badgeModal').classList.remove('open')">✕</button>
+        <h2 class="modal-title">🏅 Ton Certificat</h2>
+        <canvas id="badgeCanvas" width="400" height="280"></canvas>
+        <br>
+        <button class="badge-dl-btn" onclick="downloadBadge()">⬇ Télécharger</button>
+    </div>
+</div>
 
 <header>
     <span class="hero-sword">⚔</span>
@@ -267,6 +331,10 @@
             <button onclick="shareNative()" class="share-btn" id="shareNativeBtn" style="display:none;">📤 Partager</button>
             <button onclick="copyLink()" class="share-btn" id="copyBtn">🔗 Copier le lien</button>
         </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+            <button onclick="openStats()" class="share-btn">📊 Statistiques</button>
+            <button onclick="openBadge()" class="share-btn">🏅 Mon Certificat</button>
+        </div>
     </div>
     <canvas id="confettiCanvas" style="position:fixed;inset:0;pointer-events:none;z-index:9999;width:100%;height:100%;"></canvas>
 </section>
@@ -346,6 +414,12 @@ function animateNumber(el, target) {
 }
 
 /* =============================================
+   ÉTAT GLOBAL
+   ============================================= */
+let allDocs = [];
+let pledgeVilleSaved = localStorage.getItem('codexGamer_ville') || 'Gamer Anonyme';
+
+/* =============================================
    ÉCOUTE EN TEMPS RÉEL — onSnapshot Firestore
    Met à jour le compteur et la carte en live
    ============================================= */
@@ -354,10 +428,10 @@ const markersOnMap = new Set();
 function loadData() {
     const q = query(collection(db, COLLECTION), orderBy('timestamp', 'desc'));
     onSnapshot(q, snap => {
-        const docs = snap.docs.map(d => d.data());
+        allDocs = snap.docs.map(d => d.data());
 
         // Mettre à jour le compteur en live
-        animateNumber(document.getElementById('liveNumber'), docs.length);
+        animateNumber(document.getElementById('liveNumber'), allDocs.length);
 
         // Ajouter uniquement les nouveaux marqueurs
         snap.docChanges().forEach(change => {
@@ -431,6 +505,7 @@ window.takePledge = async function() {
         await savePledge(pledgeLat, pledgeLng, pledgeVille);
 
         localStorage.setItem(PLEDGED_KEY, '1');
+        if (pledgeVille && pledgeVille !== 'Gamer Anonyme') { localStorage.setItem('codexGamer_ville', pledgeVille); pledgeVilleSaved = pledgeVille; }
         btn.classList.add('pledged');
         btn.disabled    = true;
         btn.textContent = '✓ Serment Prononcé';
@@ -605,6 +680,146 @@ window.copyLink = function() {
         setTimeout(() => { btn.textContent = '🔗 Copier le lien'; btn.classList.remove('copied'); }, 2500);
     });
 };
+
+/* =============================================
+   STATISTIQUES
+   ============================================= */
+
+window.openStats = function() {
+    document.getElementById('statsModal').classList.add('open');
+    renderStats();
+};
+
+function renderStats() {
+    // Top villes
+    const cityCount = {};
+    allDocs.forEach(d => { if (d.ville) cityCount[d.ville] = (cityCount[d.ville] || 0) + 1; });
+    const top = Object.entries(cityCount).sort((a,b) => b[1]-a[1]).slice(0, 8);
+    const max = top[0]?.[1] || 1;
+    const citiesEl = document.getElementById('statsCities');
+    citiesEl.innerHTML = top.map(([city, count]) => `
+        <div class="stat-row">
+            <span class="stat-row-label">${city}</span>
+            <div class="stat-row-bar"><div class="stat-row-fill" data-w="${Math.round(count/max*100)}"></div></div>
+            <span class="stat-row-count">${count}</span>
+        </div>`).join('') || '<p style="font-family:Cinzel,serif;font-size:.75rem;opacity:.5;text-align:center">Aucun serment encore.</p>';
+    setTimeout(() => citiesEl.querySelectorAll('.stat-row-fill').forEach(el => el.style.width = el.dataset.w + '%'), 50);
+
+    // Graphique 7 derniers jours
+    const now   = Date.now();
+    const days  = Array.from({length: 7}, (_, i) => {
+        const d = new Date(now - (6-i) * 86400000);
+        return { label: d.toLocaleDateString('fr-FR', {weekday:'short'}), count: 0, key: d.toDateString() };
+    });
+    allDocs.forEach(d => {
+        const key = new Date(d.timestamp).toDateString();
+        const day = days.find(x => x.key === key);
+        if (day) day.count++;
+    });
+    const maxDay = Math.max(...days.map(d => d.count), 1);
+    document.getElementById('statsChart').innerHTML = days.map(d => `
+        <div class="chart-bar-wrap">
+            <div class="chart-bar" style="height:${Math.round(d.count/maxDay*72)}px" title="${d.count} serment(s)"></div>
+            <span class="chart-bar-label">${d.label}</span>
+        </div>`).join('');
+}
+
+/* =============================================
+   BADGE / CERTIFICAT
+   ============================================= */
+window.openBadge = function() {
+    document.getElementById('badgeModal').classList.add('open');
+    drawBadge();
+};
+
+function drawBadge() {
+    const canvas = document.getElementById('badgeCanvas');
+    const ctx    = canvas.getContext('2d');
+    const W = 400, H = 280;
+    ctx.clearRect(0, 0, W, H);
+
+    // Fond
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#0a0a14');
+    bg.addColorStop(1, '#12121e');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Bordure dorée
+    ctx.strokeStyle = '#c9a84c';
+    ctx.lineWidth   = 2;
+    ctx.strokeRect(10, 10, W-20, H-20);
+    ctx.strokeStyle = 'rgba(201,168,76,.3)';
+    ctx.lineWidth   = 1;
+    ctx.strokeRect(16, 16, W-32, H-32);
+
+    // Coins décoratifs
+    [[[10,10],[30,10],[10,30]], [[W-10,10],[W-30,10],[W-10,30]],
+     [[10,H-10],[30,H-10],[10,H-30]], [[W-10,H-10],[W-30,H-10],[W-10,H-30]]
+    ].forEach(pts => {
+        ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]); pts.forEach(p => ctx.lineTo(p[0],p[1]));
+        ctx.strokeStyle = '#f0d080'; ctx.lineWidth = 2; ctx.stroke();
+    });
+
+    // Épée centrale
+    ctx.font = '2.8rem serif'; ctx.textAlign = 'center';
+    ctx.shadowColor = '#c9a84c'; ctx.shadowBlur = 18;
+    ctx.fillText('⚔', W/2, 75);
+    ctx.shadowBlur = 0;
+
+    // Titre
+    ctx.fillStyle = '#f0d080';
+    ctx.font = 'bold 15px serif';
+    ctx.letterSpacing = '3px';
+    ctx.fillText('CODE D\'HONNEUR DU GAMER', W/2, 108);
+
+    // Sous-titre
+    ctx.fillStyle = 'rgba(201,168,76,.7)';
+    ctx.font = '11px serif';
+    ctx.fillText('CERTIFICAT DE SERMENT', W/2, 128);
+
+    // Ligne
+    ctx.beginPath(); ctx.moveTo(60, 140); ctx.lineTo(W-60, 140);
+    ctx.strokeStyle = 'rgba(201,168,76,.35)'; ctx.lineWidth = 1; ctx.stroke();
+
+    // Texte serment
+    ctx.fillStyle = 'rgba(208,207,200,.9)';
+    ctx.font = '11px serif';
+    const lines = ['Je joue avec intégrité · Je progresse avec patience',
+                   'Je respecte mes adversaires · Je protège ma communauté',
+                   'Je garde le contrôle · Je joue avec honneur'];
+    lines.forEach((l, i) => ctx.fillText(l, W/2, 162 + i * 18));
+
+    // Ville + date
+    ctx.fillStyle = 'rgba(201,168,76,.65)';
+    ctx.font = 'italic 11px serif';
+    if (pledgeVilleSaved && pledgeVilleSaved !== 'Gamer Anonyme') ctx.fillText(pledgeVilleSaved, W/2, 222);
+    ctx.fillStyle = 'rgba(201,168,76,.45)';
+    ctx.font = '10px serif';
+    ctx.fillText(new Date().toLocaleDateString('fr-FR', {year:'numeric',month:'long',day:'numeric'}), W/2, 236);
+
+    // Ligne bas
+    ctx.beginPath(); ctx.moveTo(60, 242); ctx.lineTo(W-60, 242);
+    ctx.strokeStyle = 'rgba(201,168,76,.2)'; ctx.stroke();
+
+    // URL
+    ctx.fillStyle = 'rgba(201,168,76,.4)';
+    ctx.font = '9px serif';
+    ctx.fillText(window.location.hostname, W/2, 260);
+}
+
+window.downloadBadge = function() {
+    const canvas = document.getElementById('badgeCanvas');
+    const a = document.createElement('a');
+    a.download = 'serment-gamer.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+};
+
+// Fermer les modals en cliquant l'overlay
+document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
 
 /* =============================================
    INIT
