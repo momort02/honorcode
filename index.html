@@ -277,17 +277,16 @@
 
 <button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">▲</button>
 
+<script src="config.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 /* =============================================
-   CONFIG — injectée par GitHub Actions au build
-   Les placeholders __AIRTABLE_TOKEN__ et
-   __AIRTABLE_BASE_ID__ sont remplacés par sed
-   depuis les GitHub Secrets. Ne jamais mettre
-   de vraies valeurs ici.
+   CONFIG — chargée depuis config.js
+   config.js est généré par GitHub Actions
+   à partir des GitHub Secrets (jamais committé)
    ============================================= */
-var AIRTABLE_TOKEN   = '__AIRTABLE_TOKEN__';
-var AIRTABLE_BASE_ID = '__AIRTABLE_BASE_ID__';
+var AIRTABLE_TOKEN   = window.AIRTABLE_TOKEN   || '';
+var AIRTABLE_BASE_ID = window.AIRTABLE_BASE_ID || '';
 var AIRTABLE_TABLE   = 'Serments';
 var AIRTABLE_URL     = 'https://api.airtable.com/v0/' + AIRTABLE_BASE_ID + '/' + encodeURIComponent(AIRTABLE_TABLE);
 var PLEDGED_KEY      = 'codexGamer_pledged_v3';

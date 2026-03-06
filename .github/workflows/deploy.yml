@@ -25,12 +25,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Inject secrets into HTML
-        env:
-          AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
-          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+      - name: Generate config.js from secrets
         run: |
-          python3 inject.py
+          cat > config.js << EOF
+          window.AIRTABLE_TOKEN   = '${{ secrets.AIRTABLE_TOKEN }}';
+          window.AIRTABLE_BASE_ID = '${{ secrets.AIRTABLE_BASE_ID }}';
+          EOF
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -43,4 +43,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-        
