@@ -27,10 +27,10 @@ jobs:
 
       - name: Generate config.js from secrets
         run: |
-          cat > config.js << EOF
-          window.AIRTABLE_TOKEN   = '${{ secrets.AIRTABLE_TOKEN }}';
-          window.AIRTABLE_BASE_ID = '${{ secrets.AIRTABLE_BASE_ID }}';
-          EOF
+          echo "window.AIRTABLE_TOKEN = '${{ secrets.AIRTABLE_TOKEN }}';" > config.js
+          echo "window.AIRTABLE_BASE_ID = '${{ secrets.AIRTABLE_BASE_ID }}';" >> config.js
+          echo "--- config.js generated ---"
+          cat config.js
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
