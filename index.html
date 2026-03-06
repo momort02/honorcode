@@ -261,8 +261,11 @@
     <div class="share-section" id="shareSection" style="display:none;margin-top:32px;display:none;flex-direction:column;align-items:center;gap:14px;">
         <p style="font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.2em;color:rgba(201,168,76,.6);text-transform:uppercase;">Partage ton serment</p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
-            <button onclick="shareTwitter()" class="share-btn share-x">𝕏 Partager sur X</button>
-            <button onclick="copyLink()" class="share-btn share-copy" id="copyBtn">🔗 Copier le lien</button>
+            <button onclick="shareTwitter()" class="share-btn">𝕏 Twitter / X</button>
+            <button onclick="shareWhatsApp()" class="share-btn">💬 WhatsApp</button>
+            <button onclick="shareDiscord()" class="share-btn">🎮 Discord</button>
+            <button onclick="shareNative()" class="share-btn" id="shareNativeBtn" style="display:none;">📤 Partager</button>
+            <button onclick="copyLink()" class="share-btn" id="copyBtn">🔗 Copier le lien</button>
         </div>
     </div>
     <canvas id="confettiCanvas" style="position:fixed;inset:0;pointer-events:none;z-index:9999;width:100%;height:100%;"></canvas>
@@ -570,6 +573,30 @@ window.shareTwitter = function() {
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
 };
 
+window.shareWhatsApp = function() {
+    const text = encodeURIComponent('Je viens de prêter le Serment du Gamer ⚔ — 7 lois pour jouer avec honneur. Et toi ? ' + window.location.href);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+};
+
+window.shareDiscord = function() {
+    const text = 'Je viens de prêter le Serment du Gamer ⚔ — 7 lois pour jouer avec honneur. Et toi ?\n' + window.location.href;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copyBtn');
+        const old = btn.textContent;
+        btn.textContent = '✓ Message copié pour Discord !';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = old; btn.classList.remove('copied'); }, 2500);
+    });
+};
+
+window.shareNative = function() {
+    navigator.share({
+        title: 'Code d\'Honneur du Gamer',
+        text : 'Je viens de prêter le Serment du Gamer ⚔ — 7 lois pour jouer avec honneur. Et toi ?',
+        url  : window.location.href
+    });
+};
+
 window.copyLink = function() {
     navigator.clipboard.writeText(window.location.href).then(() => {
         const btn = document.getElementById('copyBtn');
@@ -584,6 +611,11 @@ window.copyLink = function() {
    ============================================= */
 initPledge();
 loadData();
+
+// Afficher le bouton natif sur mobile si supporté
+if (navigator.share) {
+    document.getElementById('shareNativeBtn').style.display = 'inline-block';
+}
 </script>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
